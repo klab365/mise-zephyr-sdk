@@ -1,0 +1,9 @@
+[env]
+ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf"
+
+[tools]
+zephyr-sdk = "0.17.4"
+cmake = "3"
+ninja = "latest"
+uv = "0.11.6"
+"pipx:west" = "1.5.0"
