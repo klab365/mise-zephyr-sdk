@@ -3,8 +3,10 @@
 -- for -- no PATH manipulation needed, since west/CMake locate the
 -- compilers themselves via ZEPHYR_SDK_INSTALL_DIR.
 
+local context = require("context")
+
 function PLUGIN:EnvKeys(ctx)
-	local mainPath = ctx.path
+	local mainPath = context.install_path(ctx)
 
 	return {
 		{ key = "ZEPHYR_TOOLCHAIN_VARIANT", value = "zephyr" },

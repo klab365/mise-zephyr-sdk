@@ -1,1 +1,8 @@
 .DS_Store
+
+examples/hello-world/.venv/
+examples/hello-world/.west/
+examples/hello-world/build/
+examples/hello-world/modules/
+examples/hello-world/tools/
+examples/hello-world/zephyr/

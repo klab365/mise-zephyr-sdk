@@ -1,9 +1,11 @@
+[plugins]
+zephyr-sdk = "https://github.com/klab365/mise-zephyr-sdk.git"
+
 [env]
-ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf"
+ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf arm-zephyr-eabi"
 
 [tools]
 zephyr-sdk = "0.17.4"
 cmake = "3"
 ninja = "latest"
 uv = "0.11.6"
-"pipx:west" = "1.5.0"

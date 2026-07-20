@@ -24,9 +24,9 @@ function M.asset_token()
 	end
 
 	local arch_token
-	if arch == "amd64" then
+	if arch == "amd64" or arch == "x86_64" then
 		arch_token = "x86_64"
-	elseif arch == "arm64" then
+	elseif arch == "arm64" or arch == "aarch64" then
 		arch_token = "aarch64"
 	else
 		return nil, "unsupported architecture: " .. tostring(arch)
