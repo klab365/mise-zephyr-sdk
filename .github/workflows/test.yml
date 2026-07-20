@@ -12,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
+        zephyr-sdk-version: [0.16.9, 0.17.2, 0.17.4, 1.0.0]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -22,20 +23,61 @@ jobs:
       - name: install plugin
         run: mise plugin install zephyr-sdk "file://${{ github.workspace }}"
 
+      - name: configure example SDK version
+        working-directory: examples/hello-world
+        run: |
+          mise trust
+          mise use --yes zephyr-sdk@${{ matrix.zephyr-sdk-version }}
+
       - name: list available versions
         run: mise ls-remote zephyr-sdk
 
       - name: install example tools
         working-directory: examples/hello-world
-        run: mise trust && mise install
+        run: mise install
 
       - name: verify env vars are set
         run: |
-          eval "$(mise env -s bash zephyr-sdk@0.17.4)"
+          eval "$(mise env -s bash zephyr-sdk@${{ matrix.zephyr-sdk-version }})"
           test -n "$ZEPHYR_SDK_INSTALL_DIR"
           test "$ZEPHYR_TOOLCHAIN_VARIANT" = "zephyr"
           test -f "$ZEPHYR_SDK_INSTALL_DIR/sdk_version"
 
+  hello-world:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            zephyr-sdk-version: 0.17.4
+            zephyr-revision: v4.2.0
+          - os: macos-latest
+            zephyr-sdk-version: 0.17.4
+            zephyr-revision: v4.2.0
+          - os: ubuntu-latest
+            zephyr-sdk-version: 1.0.0
+            zephyr-revision: v4.4.0
+          - os: macos-latest
+            zephyr-sdk-version: 1.0.0
+            zephyr-revision: v4.4.0
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: install plugin
+        run: mise plugin install zephyr-sdk "file://${{ github.workspace }}"
+
+      - name: configure example SDK version
+        working-directory: examples/hello-world
+        run: |
+          mise trust
+          mise use --yes zephyr-sdk@${{ matrix.zephyr-sdk-version }}
+
       - name: run hello-world example
         working-directory: examples/hello-world
+        env:
+          ZEPHYR_REVISION: ${{ matrix.zephyr-revision }}
         run: ./run.sh

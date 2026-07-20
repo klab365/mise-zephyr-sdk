@@ -1,7 +1,7 @@
 -- hooks/pre_install.lua
 -- Resolves the download URL for the "minimal" SDK tarball matching the
--- current OS/arch (host tools + registration script, no toolchains --
--- those get pulled by setup.sh in post_install.lua).
+-- current OS/arch (setup metadata only, no toolchains -- those get pulled
+-- from release assets in post_install.lua).
 
 local platform = require("platform")
 local github = require("github")
@@ -29,7 +29,7 @@ function PLUGIN:PreInstall(ctx)
 		if asset.name == expected_asset_name then
 			asset_url = asset.browser_download_url
 			asset_name = asset.name
-			if asset.digest then
+			if type(asset.digest) == "string" then
 				sha256 = asset.digest:match("^sha256:(%x+)$")
 			end
 			break

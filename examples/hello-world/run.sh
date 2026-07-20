@@ -27,6 +27,20 @@ uv venv .venv
 uv pip install --python .venv/bin/python west==1.5.0
 export PATH="$(pwd)/.venv/bin:$PATH"
 
+if [ -n "${ZEPHYR_REVISION:-}" ]; then
+  .venv/bin/python - <<'PY'
+import os
+from pathlib import Path
+
+path = Path("west.yml")
+text = path.read_text()
+old = "revision: v4.2.0"
+if old not in text:
+    raise SystemExit(f"{old!r} not found in west.yml")
+path.write_text(text.replace(old, f"revision: {os.environ['ZEPHYR_REVISION']}"))
+PY
+fi
+
 west init -l .
 west update
 

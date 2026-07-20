@@ -15,6 +15,14 @@ Use `native_sim/native/64` on Linux. On macOS, use `qemu_x86`.
 ./run.sh
 ```
 
+The checked-in default uses Zephyr `v4.2.0` with Zephyr SDK `0.17.4`. To try
+Zephyr `v4.4.0`, use an SDK from the `1.0` line:
+
+```bash
+mise use zephyr-sdk@1.0.0
+ZEPHYR_REVISION=v4.4.0 ./run.sh
+```
+
 For macOS:
 
 ```bash
