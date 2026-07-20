@@ -4,7 +4,7 @@ A [mise](https://mise.jdx.dev) tool plugin for the [Zephyr RTOS SDK](https://git
 
 Handles, in one `mise use`:
 - downloading the right "minimal" SDK tarball for your OS/arch
-- running the SDK's `setup.sh` to pull toolchains and register the CMake package
+- downloading the configured SDK toolchains directly
 - setting `ZEPHYR_TOOLCHAIN_VARIANT` and `ZEPHYR_SDK_INSTALL_DIR` so Zephyr's build system finds it automatically
 
 Supports Linux (x86_64/arm64) and macOS (x86_64/arm64). Windows is not supported natively — use WSL.
