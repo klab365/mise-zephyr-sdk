@@ -28,6 +28,15 @@ local function asset_exists(url)
 	return command_succeeds("curl -fsIL --retry 3 --retry-delay 2 " .. shell_quote(url) .. " >/dev/null 2>&1")
 end
 
+local function any_executable(pattern)
+	return command_succeeds("for file in " .. pattern .. "; do [ -x \"$file\" ] && exit 0; done; exit 1")
+end
+
+local function hosttools_installed(path)
+	return any_executable(shell_quote(path .. "/usr/bin/openocd") .. " " .. shell_quote(path .. "/hosttools/sysroots") .. "/*/usr/bin/openocd")
+		and any_executable(shell_quote(path .. "/usr/bin/qemu-system-arm") .. " " .. shell_quote(path .. "/hosttools/sysroots") .. "/*/usr/bin/qemu-system-arm")
+end
+
 local function install_version(ctx, path)
 	local version = ctx.version or ctx.toolVersion or ctx.tool_version or ctx.versionName
 	if version ~= nil and version ~= "" then
@@ -133,8 +142,7 @@ local function install_toolchain(path, version, host, toolchain)
 end
 
 local function install_hosttools(path, version, host)
-	if command_succeeds("test -x " .. shell_quote(path .. "/usr/bin/openocd"))
-		and command_succeeds("test -x " .. shell_quote(path .. "/usr/bin/qemu-system-arm")) then
+	if hosttools_installed(path) then
 		return
 	end
 
@@ -157,6 +165,21 @@ local function install_hosttools(path, version, host)
 	if not command_succeeds(cmd) then
 		command_succeeds("rm -f " .. shell_quote(archive))
 		error("zephyr-sdk: failed to install hosttools")
+	end
+
+	local installer_pattern = shell_quote(path) .. "/zephyr-sdk-*-hosttools-standalone-*.sh"
+	local nested_cmd = "for installer in " .. installer_pattern .. "; do "
+		.. "[ -f \"$installer\" ] || continue; "
+		.. "sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " || exit 1; "
+		.. "rm -f \"$installer\"; "
+		.. "done"
+
+	if not command_succeeds(nested_cmd) then
+		error("zephyr-sdk: failed to install nested hosttools")
+	end
+
+	if not hosttools_installed(path) then
+		error("zephyr-sdk: hosttools asset did not install expected tools")
 	end
 end
 

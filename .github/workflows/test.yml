@@ -34,7 +34,9 @@ jobs:
 
       - name: install example tools
         working-directory: examples/hello-world
-        run: mise install
+        run: |
+          mise install --force zephyr-sdk@${{ matrix.zephyr-sdk-version }}
+          mise install
 
       - name: verify env vars are set
         run: |
