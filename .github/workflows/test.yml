@@ -12,7 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
-        zephyr-sdk-version: [0.16.9, 0.17.2, 0.17.4, 1.0.0]
+        zephyr-sdk-version: [0.16.9, 0.17.2, 0.17.4, 1.0.0, 1.0.1]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -42,6 +42,12 @@ jobs:
           test -n "$ZEPHYR_SDK_INSTALL_DIR"
           test "$ZEPHYR_TOOLCHAIN_VARIANT" = "zephyr"
           test -f "$ZEPHYR_SDK_INSTALL_DIR/sdk_version"
+          command -v x86_64-zephyr-elf-gcc
+          command -v arm-zephyr-eabi-gcc
+          if [ "${{ matrix.zephyr-sdk-version }}" = "1.0.1" ]; then
+            command -v openocd
+            command -v qemu-system-arm
+          fi
 
   hello-world:
     strategy:

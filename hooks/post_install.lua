@@ -1,8 +1,8 @@
 -- hooks/post_install.lua
 -- The "minimal" tarball only contains setup metadata; the actual cross
--- toolchains are release assets downloaded after extraction. The plugin
--- exports ZEPHYR_SDK_INSTALL_DIR, so the SDK does not need CMake user-package
--- registration during install.
+-- toolchains, and host tools in newer SDK releases, are release assets
+-- downloaded after extraction. The plugin exports ZEPHYR_SDK_INSTALL_DIR, so
+-- the SDK does not need CMake user-package registration during install.
 --
 -- Which toolchains to install is controlled by the ZEPHYR_SDK_TOOLCHAINS env var
 -- (space or comma separated, e.g. "x86_64-zephyr-elf arm-zephyr-eabi"). This is
@@ -22,6 +22,10 @@ end
 local function command_succeeds(cmd)
 	local ok = os.execute(cmd)
 	return ok == true or ok == 0
+end
+
+local function asset_exists(url)
+	return command_succeeds("curl -fsIL --retry 3 --retry-delay 2 " .. shell_quote(url) .. " >/dev/null 2>&1")
 end
 
 local function install_version(ctx, path)
@@ -128,6 +132,34 @@ local function install_toolchain(path, version, host, toolchain)
 	error("zephyr-sdk: failed to install toolchain " .. toolchain)
 end
 
+local function install_hosttools(path, version, host)
+	if command_succeeds("test -x " .. shell_quote(path .. "/usr/bin/openocd"))
+		and command_succeeds("test -x " .. shell_quote(path .. "/usr/bin/qemu-system-arm")) then
+		return
+	end
+
+	if not command_succeeds("command -v curl >/dev/null 2>&1") then
+		error("zephyr-sdk: curl is required to download SDK hosttools")
+	end
+
+	local filename = "hosttools_" .. host .. ".tar.xz"
+	local url = "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" .. version .. "/" .. filename
+	if not asset_exists(url) then
+		return
+	end
+
+	local archive = path .. "/" .. filename
+	local cmd = "cd " .. shell_quote(path)
+		.. " && curl -fsL --retry 3 --retry-delay 2 --progress-bar -o " .. shell_quote(archive) .. " " .. shell_quote(url)
+		.. " && tar xf " .. shell_quote(archive)
+		.. " && rm -f " .. shell_quote(archive)
+
+	if not command_succeeds(cmd) then
+		command_succeeds("rm -f " .. shell_quote(archive))
+		error("zephyr-sdk: failed to install hosttools")
+	end
+end
+
 function PLUGIN:PostInstall(ctx)
 	local path = context.install_path(ctx)
 	local version = install_version(ctx, path)
@@ -148,4 +180,6 @@ function PLUGIN:PostInstall(ctx)
 	for _, toolchain in ipairs(names) do
 		install_toolchain(path, version, host, toolchain)
 	end
+
+	install_hosttools(path, version, host)
 end

@@ -6,6 +6,7 @@ Handles, in one `mise use`:
 - downloading the right "minimal" SDK tarball for your OS/arch
 - downloading the configured SDK toolchains directly
 - setting `ZEPHYR_TOOLCHAIN_VARIANT` and `ZEPHYR_SDK_INSTALL_DIR` so Zephyr's build system finds it automatically
+- adding installed SDK compiler and host tool `bin` directories to `PATH` for direct shell use
 
 Supports Linux (x86_64/arm64) and macOS (x86_64/arm64). Windows is not supported natively — use WSL.
 
