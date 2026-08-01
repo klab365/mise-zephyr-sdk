@@ -36,6 +36,32 @@ local function any_executable(pattern)
 	return command_succeeds("for file in " .. pattern .. "; do [ -x \"$file\" ] && exit 0; done; exit 1")
 end
 
+local function dirname(path)
+	return path:match("^(.*)/[^/]+/*$") or "."
+end
+
+local function find_python(path)
+	local installs_dir = path:match("^(.*)/zephyr%-sdk/[^/]+/*$")
+	local cmd = "command -v python3 2>/dev/null || command -v python2 2>/dev/null"
+
+	if installs_dir ~= nil then
+		cmd = cmd .. " || for file in "
+			.. shell_quote(installs_dir .. "/python") .. "/*/bin/python3 "
+			.. shell_quote(installs_dir .. "/python") .. "/*/bin/python; do "
+			.. "[ -x \"$file\" ] && printf '%s\n' \"$file\" && exit 0; "
+			.. "done; exit 1"
+	end
+
+	local handle = io.popen(cmd, "r")
+	if handle == nil then
+		return nil
+	end
+
+	local python = handle:read("*l")
+	handle:close()
+	return python
+end
+
 local function hosttools_installed(path)
 	return any_executable(shell_quote(path .. "/usr/bin/openocd") .. " " .. shell_quote(path .. "/hosttools/sysroots") .. "/*/usr/bin/openocd")
 		and any_executable(shell_quote(path .. "/usr/bin/qemu-system-arm") .. " " .. shell_quote(path .. "/hosttools/sysroots") .. "/*/usr/bin/qemu-system-arm")
@@ -160,7 +186,8 @@ local function install_hosttools(path, version, host)
 		return
 	end
 
-	if not command_exists("python3") and not command_exists("python2") then
+	local python = find_python(path)
+	if python == nil or python == "" then
 		error("zephyr-sdk: python3 is required to install SDK hosttools")
 	end
 
@@ -185,7 +212,7 @@ local function install_hosttools(path, version, host)
 	local hosttools_log = path .. "/hosttools-install.log"
 	local nested_cmd = "for installer in " .. installer_pattern .. "; do "
 		.. "[ -f \"$installer\" ] || continue; "
-		.. "sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " > " .. shell_quote(hosttools_log) .. " 2>&1 || exit 1; "
+		.. "PATH=" .. shell_quote(dirname(python)) .. ":$PATH sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " > " .. shell_quote(hosttools_log) .. " 2>&1 || exit 1; "
 		.. "rm -f \"$installer\"; "
 		.. "done"
 
