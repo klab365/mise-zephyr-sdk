@@ -28,6 +28,10 @@ local function asset_exists(url)
 	return command_succeeds("curl -fsIL --retry 3 --retry-delay 2 " .. shell_quote(url) .. " >/dev/null 2>&1")
 end
 
+local function command_exists(name)
+	return command_succeeds("command -v " .. shell_quote(name) .. " >/dev/null 2>&1")
+end
+
 local function any_executable(pattern)
 	return command_succeeds("for file in " .. pattern .. "; do [ -x \"$file\" ] && exit 0; done; exit 1")
 end
@@ -146,7 +150,7 @@ local function install_hosttools(path, version, host)
 		return
 	end
 
-	if not command_succeeds("command -v curl >/dev/null 2>&1") then
+	if not command_exists("curl") then
 		error("zephyr-sdk: curl is required to download SDK hosttools")
 	end
 
@@ -154,6 +158,16 @@ local function install_hosttools(path, version, host)
 	local url = "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" .. version .. "/" .. filename
 	if not asset_exists(url) then
 		return
+	end
+
+	if not command_exists("python3") and not command_exists("python2") then
+		error("zephyr-sdk: python3 is required to install SDK hosttools")
+	end
+
+	for _, name in ipairs({ "xz", "file", "xargs" }) do
+		if not command_exists(name) then
+			error("zephyr-sdk: " .. name .. " is required to install SDK hosttools")
+		end
 	end
 
 	local archive = path .. "/" .. filename
@@ -168,15 +182,17 @@ local function install_hosttools(path, version, host)
 	end
 
 	local installer_pattern = shell_quote(path) .. "/zephyr-sdk-*-hosttools-standalone-*.sh"
+	local hosttools_log = path .. "/hosttools-install.log"
 	local nested_cmd = "for installer in " .. installer_pattern .. "; do "
 		.. "[ -f \"$installer\" ] || continue; "
-		.. "sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " || exit 1; "
+		.. "sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " > " .. shell_quote(hosttools_log) .. " 2>&1 || exit 1; "
 		.. "rm -f \"$installer\"; "
 		.. "done"
 
 	if not command_succeeds(nested_cmd) then
-		error("zephyr-sdk: failed to install nested hosttools")
+		error("zephyr-sdk: failed to install nested hosttools; see " .. hosttools_log)
 	end
+	command_succeeds("rm -f " .. shell_quote(hosttools_log))
 
 	if not hosttools_installed(path) then
 		error("zephyr-sdk: hosttools asset did not install expected tools")
