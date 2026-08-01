@@ -25,6 +25,7 @@ and CI do not need a separate `mise plugin install` step:
 zephyr-sdk = "https://github.com/klab365/mise-zephyr-sdk.git"
 
 [tools]
+python = "3.13"
 zephyr-sdk = "0.17.4"
 cmake = "3"
 ninja = "latest"
@@ -49,10 +50,69 @@ zephyr-sdk = "https://github.com/klab365/mise-zephyr-sdk.git"
 ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf"
 
 [tools]
+python = "3.13"
 zephyr-sdk = "0.17.4"
 ```
 
 Space-separate multiple toolchains: `"x86_64-zephyr-elf arm-zephyr-eabi"`.
+
+## Hosttools prerequisites
+
+SDK releases publish hosttools as separate assets. For `0.17.4`, hosttools are
+Linux-only. Starting with `1.0.0`, Zephyr also publishes macOS and Windows
+hosttools; this plugin supports Linux and macOS, but not native Windows.
+
+On Linux, the hosttools asset contains a Zephyr/Yocto `.sh` installer that
+relocates QEMU, OpenOCD, and related host tools into the mise install directory.
+
+That installer requires these commands at SDK install time:
+
+- `python3` or `python2`
+- `xz`
+- `file`
+- `xargs`
+
+If your project only needs to compile firmware and does not need SDK-provided
+QEMU/OpenOCD/BOSSA host tools, skip hosttools:
+
+```toml
+[env]
+ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf"
+ZEPHYR_SDK_SKIP_HOSTTOOLS = "1"
+```
+
+With hosttools skipped, the plugin still installs SDK metadata and the selected
+compiler toolchains, but it does not require Python or the Linux relocation
+utilities listed above. To add hosttools later, remove `ZEPHYR_SDK_SKIP_HOSTTOOLS`
+and reinstall the SDK:
+
+```bash
+mise install --force zephyr-sdk
+```
+
+`python` may be managed by mise, but it must be installed before `zephyr-sdk`.
+In project `mise.toml`, declare `python` as the first entry in `[tools]`, before
+`zephyr-sdk`, then install normally. If needed, bootstrap Python explicitly:
+
+```bash
+mise install python
+mise install zephyr-sdk
+```
+
+Minimal Ubuntu/devcontainer images often omit `file`. Install the Linux OS
+utilities in the container image:
+
+```Dockerfile
+RUN apt-get update && apt-get install -y \
+    file \
+    xz-utils \
+    findutils \
+    && rm -rf /var/lib/apt/lists/*
+```
+
+The plugin does not install OS packages itself. If the upstream hosttools
+installer fails, the plugin leaves `hosttools-install.log` in the SDK install
+directory and reports its path.
 
 ## What this plugin does *not* do
 
