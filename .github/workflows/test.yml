@@ -39,7 +39,7 @@ jobs:
             mise use --yes python@3.12
             mise install python@3.12
             eval "$(mise env -s bash)"
-            python3 --version
+            "$(mise where python@3.12)/bin/python3" --version
           fi
           mise install --force zephyr-sdk@${{ matrix.zephyr-sdk-version }}
           mise install
@@ -67,6 +67,36 @@ jobs:
             openocd --version
             qemu-system-arm --version
           fi
+
+  skip-hosttools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: install plugin
+        run: mise plugin install zephyr-sdk "file://${{ github.workspace }}"
+
+      - name: install without hosttools
+        working-directory: examples/hello-world
+        env:
+          ZEPHYR_SDK_SKIP_HOSTTOOLS: "1"
+        run: |
+          mise trust
+          mise use --yes zephyr-sdk@0.17.4
+          mise install --force zephyr-sdk@0.17.4
+
+      - name: verify hosttools were skipped
+        working-directory: examples/hello-world
+        run: |
+          eval "$(mise env -s bash)"
+          test -n "$ZEPHYR_SDK_INSTALL_DIR"
+          x86_64-zephyr-elf-gcc --version
+          arm-zephyr-eabi-gcc --version
+          test ! -d "$ZEPHYR_SDK_INSTALL_DIR/hosttools"
+          test ! -f "$ZEPHYR_SDK_INSTALL_DIR/hosttools-install.log"
 
   hello-world:
     strategy:

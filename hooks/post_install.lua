@@ -7,6 +7,8 @@
 -- Which toolchains to install is controlled by the ZEPHYR_SDK_TOOLCHAINS env var
 -- (space or comma separated, e.g. "x86_64-zephyr-elf arm-zephyr-eabi"). This is
 -- required to avoid accidentally downloading every Zephyr SDK toolchain.
+-- Set ZEPHYR_SDK_SKIP_HOSTTOOLS=1 to install only SDK metadata and selected
+-- compiler toolchains.
 --
 --   [env]
 --   ZEPHYR_SDK_TOOLCHAINS = "x86_64-zephyr-elf"
@@ -34,6 +36,45 @@ end
 
 local function any_executable(pattern)
 	return command_succeeds("for file in " .. pattern .. "; do [ -x \"$file\" ] && exit 0; done; exit 1")
+end
+
+local function truthy(value)
+	if value == nil then
+		return false
+	end
+
+	value = value:lower()
+	return value == "1" or value == "true" or value == "yes" or value == "on"
+end
+
+local function skip_hosttools()
+	return truthy(os.getenv("MISE_TOOL_OPTS__SKIP_HOSTTOOLS")) or truthy(os.getenv("ZEPHYR_SDK_SKIP_HOSTTOOLS"))
+end
+
+local function dirname(path)
+	return path:match("^(.*)/[^/]+/*$") or "."
+end
+
+local function find_python(path)
+	local installs_dir = path:match("^(.*)/zephyr%-sdk/[^/]+/*$")
+	local cmd = "command -v python3 2>/dev/null || command -v python2 2>/dev/null"
+
+	if installs_dir ~= nil then
+		cmd = cmd .. " || for file in "
+			.. shell_quote(installs_dir .. "/python") .. "/*/bin/python3 "
+			.. shell_quote(installs_dir .. "/python") .. "/*/bin/python; do "
+			.. "[ -x \"$file\" ] && printf '%s\n' \"$file\" && exit 0; "
+			.. "done; exit 1"
+	end
+
+	local handle = io.popen(cmd, "r")
+	if handle == nil then
+		return nil
+	end
+
+	local python = handle:read("*l")
+	handle:close()
+	return python
 end
 
 local function hosttools_installed(path)
@@ -160,8 +201,9 @@ local function install_hosttools(path, version, host)
 		return
 	end
 
-	if not command_exists("python3") and not command_exists("python2") then
-		error("zephyr-sdk: python3 is required to install SDK hosttools")
+	local python = find_python(path)
+	if python == nil or python == "" then
+		error("zephyr-sdk: python3 is required to install SDK hosttools; install mise python before zephyr-sdk or provide system python3")
 	end
 
 	for _, name in ipairs({ "xz", "file", "xargs" }) do
@@ -185,7 +227,7 @@ local function install_hosttools(path, version, host)
 	local hosttools_log = path .. "/hosttools-install.log"
 	local nested_cmd = "for installer in " .. installer_pattern .. "; do "
 		.. "[ -f \"$installer\" ] || continue; "
-		.. "sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " > " .. shell_quote(hosttools_log) .. " 2>&1 || exit 1; "
+		.. "PATH=" .. shell_quote(dirname(python)) .. ":$PATH sh \"$installer\" -y -d " .. shell_quote(path .. "/hosttools") .. " > " .. shell_quote(hosttools_log) .. " 2>&1 || exit 1; "
 		.. "rm -f \"$installer\"; "
 		.. "done"
 
@@ -220,5 +262,7 @@ function PLUGIN:PostInstall(ctx)
 		install_toolchain(path, version, host, toolchain)
 	end
 
-	install_hosttools(path, version, host)
+	if not skip_hosttools() then
+		install_hosttools(path, version, host)
+	end
 end
