@@ -39,11 +39,7 @@ jobs:
             mise use --yes python@3.12
             mise install python@3.12
             eval "$(mise env -s bash)"
-            python3 --version
-            case "$(command -v python3)" in
-              "$HOME/.local/share/mise"/*) ;;
-              *) echo "python3 is not from mise: $(command -v python3)" >&2; exit 1 ;;
-            esac
+            "$(mise where python@3.12)/bin/python3" --version
           fi
           mise install --force zephyr-sdk@${{ matrix.zephyr-sdk-version }}
           mise install
