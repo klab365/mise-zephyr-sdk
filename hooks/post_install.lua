@@ -22,8 +22,12 @@ local function shell_quote(value)
 end
 
 local function command_succeeds(cmd)
-	local ok = os.execute(cmd)
-	return ok == true or ok == 0
+	local ok, result, _, code = pcall(os.execute, cmd)
+	if not ok then
+		return false
+	end
+
+	return result == true or result == 0 or code == 0
 end
 
 local function asset_exists(url)
