@@ -176,7 +176,7 @@ local function install_toolchain(path, version, host, toolchain)
 		local url = "https://github.com/zephyrproject-rtos/sdk-ng/releases/download/v" .. version .. "/" .. filename
 		local archive = install_dir .. "/" .. filename
 		local cmd = "cd " .. shell_quote(install_dir)
-			.. " && curl -fsL --progress-bar -o " .. shell_quote(archive) .. " " .. shell_quote(url)
+			.. " && curl -fsL --retry 3 --retry-delay 2 --progress-bar -o " .. shell_quote(archive) .. " " .. shell_quote(url)
 			.. " && tar xf " .. shell_quote(archive)
 			.. " && rm -f " .. shell_quote(archive)
 
