@@ -1,6 +1,6 @@
 -- hooks/env_keys.lua
--- Zephyr/CMake locate the SDK via ZEPHYR_SDK_INSTALL_DIR, and PATH exposes
--- the installed SDK compiler and host tool binaries for direct shell use.
+-- Zephyr/CMake locate the SDK via ZEPHYR_SDK_INSTALL_DIR. Export only SDK
+-- directories in PATH so mise does not create shims for inherited binaries.
 
 local context = require("context")
 
@@ -39,35 +39,12 @@ local function sdk_bin_paths(mainPath)
 	return paths
 end
 
-local function prepend_path(paths, current)
-	local seen = {}
-	local values = {}
-
-	local function add(path)
-		if path ~= nil and path ~= "" and not seen[path] then
-			seen[path] = true
-			table.insert(values, path)
-		end
-	end
-
-	for _, path in ipairs(paths) do
-		add(path)
-	end
-
-	for path in tostring(current or ""):gmatch("[^:]+") do
-		add(path)
-	end
-
-	return table.concat(values, ":")
-end
-
 function PLUGIN:EnvKeys(ctx)
 	local mainPath = context.install_path(ctx)
-	local path = prepend_path(sdk_bin_paths(mainPath), os.getenv("PATH"))
 
 	return {
 		{ key = "ZEPHYR_TOOLCHAIN_VARIANT", value = "zephyr" },
 		{ key = "ZEPHYR_SDK_INSTALL_DIR", value = mainPath },
-		{ key = "PATH", value = path },
+		{ key = "PATH", value = table.concat(sdk_bin_paths(mainPath), ":") },
 	}
 end

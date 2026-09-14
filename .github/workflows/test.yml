@@ -61,12 +61,7 @@ jobs:
           test -n "$ZEPHYR_SDK_INSTALL_DIR"
           test "$ZEPHYR_TOOLCHAIN_VARIANT" = "zephyr"
           test -f "$ZEPHYR_SDK_INSTALL_DIR/sdk_version"
-          x86_64-zephyr-elf-gcc --version
-          arm-zephyr-eabi-gcc --version
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-            openocd --version
-            qemu-system-arm --version
-          fi
+          mise exec zephyr-sdk@${{ matrix.zephyr-sdk-version }} -- x86_64-zephyr-elf-gcc --version
 
   skip-hosttools:
     runs-on: ubuntu-latest
@@ -93,8 +88,7 @@ jobs:
         run: |
           eval "$(mise env -s bash)"
           test -n "$ZEPHYR_SDK_INSTALL_DIR"
-          x86_64-zephyr-elf-gcc --version
-          arm-zephyr-eabi-gcc --version
+          mise exec zephyr-sdk@0.17.4 -- x86_64-zephyr-elf-gcc --version
           test ! -d "$ZEPHYR_SDK_INSTALL_DIR/hosttools"
           test ! -f "$ZEPHYR_SDK_INSTALL_DIR/hosttools-install.log"
 

@@ -17,6 +17,12 @@ mise plugin install zephyr-sdk https://github.com/klab365/mise-zephyr-sdk.git
 ZEPHYR_SDK_TOOLCHAINS=x86_64-zephyr-elf mise use zephyr-sdk@0.17.4
 ```
 
+To update an installed plugin after a new release or change is available, run:
+
+```bash
+mise plugins update zephyr-sdk
+```
+
 For projects, commit the plugin source and tool version in `mise.toml` so users
 and CI do not need a separate `mise plugin install` step:
 
